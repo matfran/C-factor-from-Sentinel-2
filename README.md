@@ -1,3 +1,5 @@
+**C-factor-from-Sentinel-2**
+
 This repository contains all the information regarding the Python/Google Earth Engine scripts used to calculate parcel-specific (multi-year/annual) crop cover and manageent factors (C-factors) based on Sentinel-2 remote sensing imagery for Flanders. 
 The code analyses the temporal evolution of the ground cover within the year and calculated the erosion risk and C-factor based on the interations with the 15-day rainfall erosivity. Additionally, it includes a necessary Python script for statistically analyzing the results.
 
