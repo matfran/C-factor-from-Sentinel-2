@@ -1,0 +1,205 @@
+// Load the dataset of interest (field parcel data)
+var all_parcels_orig = ee.FeatureCollection(Parcels_flanders_23);
+
+// Keep only necessary attributes ('id')
+var selectedParcels = all_parcels_orig.map(function(feature) {
+  return ee.Feature(feature.geometry(), {'id': feature.get('REF_ID')});
+});
+
+
+// Print the total number of parcels
+print('Total number of parcels:', parcels.size());
+
+// Filter based on an agricultural regions
+var Region = agriculturalRegions.filter(ee.Filter.eq('NAAM', 'Zandleemstreek'));
+
+// Check if the region exists and its geometry
+print('region:', Region);
+print('region geometry:', Region.geometry());
+print('region CRS:', Region.geometry().projection());
+
+// Force both the region and parcels to have the same CRS
+var RegionCrs = Region.geometry().projection();  // Get region CRS
+parcels = parcels.map(function(feature) {
+  return feature.transform(RegionCrs, 10);  // Reproject parcels to match region CRS
+});
+
+// Print the CRS of the parcels to verify
+print('Parcels CRS after reprojection:', parcels.first().geometry().projection());
+
+// Select parcels that are within the bounds of the region you want to analyze
+var selectedParcels = parcels.filterBounds(Region.geometry());
+
+// Print the number of selected parcels
+print('Number of selected parcels within region:', selectedParcels.size());
+
+// Check if geometries exist in the selected parcels
+var parcelsWithGeometry = selectedParcels.filter(ee.Filter.notNull(['.geo']));
+print('Number of parcels with geometries:', parcelsWithGeometry.size());
+
+// Print sample of parcels with geometries
+print('Sample of selected parcels with geometries:', parcelsWithGeometry.limit(5));
+
+// Plot the selected parcels
+Map.centerObject(selectedParcels, 10);  // Center the map on the selected parcels
+Map.addLayer(selectedParcels, {color: 'red'}, 'Selected Parcels');  // Add the selected parcels layer with a red color
+
+// Function to get Sentinel-2 imagery
+var getSentinel2 = function(start_date, end_date, region) {
+  // Load Sentinel-2 Surface Reflectance collection with a cloud cover filter
+  var s2Sr = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+    .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 80)); 
+  // Load Sentinel-2 cloud probability collection
+  var s2Clouds = ee.ImageCollection('COPERNICUS/S2_CLOUD_PROBABILITY');
+  // Convert input date strings to Earth Engine Date objects
+  var START_DATE = ee.Date(start_date);
+  var END_DATE = ee.Date(end_date);
+  // Define the maximum allowable cloud probability for masking
+  var MAX_CLOUD_PROBABILITY = 50; 
+  // Function to mask clouds based on cloud probability data
+  function maskClouds(img) {
+    var clouds = ee.Image(img.get('cloud_mask')).select('probability');
+    var isNotCloud = clouds.lt(MAX_CLOUD_PROBABILITY);
+    return img.updateMask(isNotCloud);
+  }
+  // Function to mask edges where bands B8A and B9 have invalid values
+  function maskEdges(s2_img) {
+    return s2_img.updateMask(
+      s2_img.select('B8A').mask().updateMask(s2_img.select('B9').mask()));
+  }
+  // Define filtering criteria based on region and date range
+  var criteria = ee.Filter.and(
+      ee.Filter.bounds(region), ee.Filter.date(START_DATE, END_DATE));
+  // Apply the filters to the Sentinel-2 collection and mask invalid edge pixels
+  s2Sr = s2Sr.filter(criteria).map(maskEdges);
+  s2Clouds = s2Clouds.filter(criteria);
+  // Join Sentinel-2 SR images with their corresponding cloud probability images
+  var s2SrWithCloudMask = ee.Join.saveFirst('cloud_mask').apply({
+    primary: s2Sr,
+    secondary: s2Clouds,
+    condition: ee.Filter.equals({leftField: 'system:index', rightField: 'system:index'})
+  });
+  // Convert the joined result into an ImageCollection and apply cloud masking
+  var collection = ee.ImageCollection(s2SrWithCloudMask).map(maskClouds);
+  print('Sentinel-2 collection:', collection);
+  return collection;
+};
+
+// Function to get NDVI
+var getNDVI = function(img) {
+  var img_ = img.addBands(img.normalizedDifference(['B8', 'B4']).rename('NDVI'));
+  return img_;
+};
+
+// Function to extract polygon values
+var extract_polygon_values = function(collection_in, LPIS, index) {
+  // Map over each image in the collection
+  var triplets = collection_in.map(function(image) {
+    return image.select(index).reduceRegions({
+      collection: LPIS, 
+      reducer: ee.Reducer.median().setOutputs([index]), 
+      scale: 10,
+    })
+    .map(function(feature) {
+      var VI = ee.List([feature.get(index), -9999])  // Handle missing values
+        .reduce(ee.Reducer.firstNonNull());
+      return feature.set({index: VI,'imageID': image.id(),'id': feature.get('id')}).setGeometry(null);  // Remove geometry
+    });
+  }).flatten();
+  print('Triplets:', triplets.limit(10));
+  // Function to reformat the extracted data into a structured table
+  var format = function(t, rowId, colId) {
+    var rows = t.distinct(rowId);
+    var joined = ee.Join.saveAll('matches').apply({
+      primary: rows, 
+      secondary: t, 
+      condition: ee.Filter.equals({leftField: rowId, rightField: rowId})
+    });
+    return joined.map(function(row) {
+      var values = ee.List(row.get('matches'))
+        .map(function(feature) {
+          feature = ee.Feature(feature);
+          return [feature.get(colId), feature.get(index)];
+        });
+      return row.select([rowId]).set(ee.Dictionary(values.flatten()));
+    });
+  };
+  var sentinelResults = format(triplets, 'id', 'imageID');
+  print('Sentinel results:', sentinelResults.limit(10));
+  // Function to merge extracted values, selecting max value per unique key
+  var merge = function(table, rowId) {
+    return table.map(function(feature) {
+      var id = feature.get(rowId);
+      var allKeys = feature.toDictionary().keys().remove(rowId);
+      // Extract unique date prefixes (first 8 characters, assuming YYYYMMDD format)
+      var substrKeys = ee.List(allKeys.map(function(val) { 
+          return ee.String(val).slice(0, 8);
+        }));
+      var uniqueKeys = substrKeys.distinct();
+      var pairs = uniqueKeys.map(function(key) {
+        var matches = feature.toDictionary().select(allKeys.filter(ee.Filter.stringContains('item', key))).values();
+        var val = matches.reduce(ee.Reducer.max());
+        return [key, val];
+      });
+      return feature.select([rowId]).set(ee.Dictionary(pairs.flatten()));
+    });
+  };
+  var sentinelMerged = merge(sentinelResults, 'id');
+  print('Sentinel merged:', sentinelMerged.limit(10));
+  // Return the table
+  return sentinelMerged;
+};
+
+// Function for processing the batch
+function batchP(IACS_batch, name_export, date_start, date_end, index) {
+  var extents = IACS_batch.geometry().bounds();
+  var collection = getSentinel2(date_start, date_end, extents);
+  // Get the NDVI index and filter clouds
+  collection = collection.map(getNDVI).select(index);
+  
+  // Extract values and format them
+  var sentinelMerged_all_ndvi = extract_polygon_values(collection, IACS_batch, index);
+  
+  // Print the result to check if it's correct
+  print('Sentinel merged result for batch:', sentinelMerged_all_ndvi.limit(10));
+  
+  // Export the results to Google Drive
+  Export.table.toDrive({
+    collection: sentinelMerged_all_ndvi,
+    description: 'NDVI_PARCELS_'.concat(name_export),
+    folder: 'SENTINEL_FLANDERS_2023',
+    fileNamePrefix: 'NDVI_PARCELS_'.concat(name_export),
+    fileFormat: 'CSV'
+  });
+}
+
+// Function to create batches
+var createBatches = function(selectedParcels, batchSize) {
+  var totalFeatures = selectedParcels.size().getInfo();  // Get the total number of parcels
+  print('Total features:', totalFeatures);  // Print the total number of features
+  var numBatches = Math.ceil(totalFeatures / batchSize);  // Calculate number of batches
+  var batches = [];
+  var selectedParcelsList = selectedParcels.toList(totalFeatures);  // Convert FeatureCollection to List
+  for (var i = 0; i < numBatches; i++) {
+    var startIndex = i * batchSize;
+    var batch = ee.FeatureCollection(selectedParcelsList.slice(startIndex, startIndex + batchSize));
+    batches.push(batch);
+  }
+  return batches;
+};
+
+// Create batches from the selectedParcels collection
+var batchSize = 1000;  // Size of each batch (number of parcels per batch)
+var batches = createBatches(selectedParcels, batchSize);
+
+// Print the number of features in each batch
+batches.forEach(function(batch, i) {
+  print('Number of features in batch', i, ':', batch.size());
+});
+
+// Process each batch
+batches.forEach(function(batch, i) {
+  var batchName = 'batch_'.concat(i);
+  batchP(batch, batchName, '2022-12-25', '2024-01-05', 'NDVI');
+});
+

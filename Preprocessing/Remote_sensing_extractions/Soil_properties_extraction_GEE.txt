@@ -1,0 +1,72 @@
+// Load the dataset of interest (field parcels)
+var all_parcels_orig = ee.FeatureCollection(Parcels_flanders_23);
+
+// Keep only necessary attributes ('id')
+var selectedParcels = all_parcels_orig.map(function(feature) {
+  return ee.Feature(feature.geometry(), {'id': feature.get('REF_ID')});
+});
+
+// Print the total number of parcels
+print('Total number of parcels:', parcels.size());
+
+// Filter the agricultural regions
+var Region = agriculturalRegions.filter(ee.Filter.eq('NAAM', 'Kempen'));
+
+// Check if the region exists and its geometry
+print('region:', Region);
+print('region geometry:', Region.geometry());
+print('region CRS:', Region.geometry().projection());
+
+// Force both the region and parcels to have the same CRS
+var RegionCrs = Region.geometry().projection();  // Get region CRS
+parcels = parcels.map(function(feature) {
+  return feature.transform(RegionCrs, 10);  // Reproject parcels to match region CRS
+});
+
+// Print the CRS of the parcels to verify
+print('Parcels CRS after reprojection:', parcels.first().geometry().projection());
+
+// Select parcels that are within the bounds of the region you want to analyze
+var selectedParcels = parcels.filterBounds(Region.geometry());
+
+// Print the number of selected parcels
+print('Number of selected parcels within region:', selectedParcels.size());
+
+// Check if geometries exist in the selected parcels
+var parcelsWithGeometry = selectedParcels.filter(ee.Filter.notNull(['.geo']));
+print('Number of parcels with geometries:', parcelsWithGeometry.size());
+
+// Print a sample of parcels with geometries
+print('Sample of selected parcels with geometries:', parcelsWithGeometry.limit(5));
+
+// Plot the selected parcels
+Map.centerObject(selectedParcels, 10);  // Center the map on the selected parcels
+Map.addLayer(selectedParcels, {color: 'red'}, 'Selected Parcels');  // Add the selected parcels layer with a red color
+
+//load in some soil property layers to extract values from
+var clay_content = ee.Image("OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02");
+var soil_texture = ee.Image("OpenLandMap/SOL/SOL_TEXTURE-CLASS_USDA-TT_M/v02");
+var bulk_density = ee.Image("OpenLandMap/SOL/SOL_BULKDENS-FINEEARTH_USDA-4A1H_M/v02");
+var soil_collection = ee.ImageCollection.fromImages([clay_content, soil_texture, bulk_density]);
+
+// Function to extract soil parameter values
+var extract_soil_values = function(soil_collection, parcels) {
+  var soilValues = soil_collection.toBands().reduceRegions({
+    collection: parcels,
+    reducer: ee.Reducer.median(),
+    scale: 100,  // Adjust scale as needed
+  }).map(function(feature) {
+    return feature.setGeometry(null);});return soilValues;
+};
+
+// Extract soil values for the selected parcels
+var soilResults = extract_soil_values(soil_collection, selectedParcels);
+
+// Export the results to Google Drive as a CSV file
+Export.table.toDrive({
+  collection: soilResults,
+  description: 'Soil_Properties_Parcels',
+  folder: 'SOIL_PROPERTIES_FLANDERS',
+  fileNamePrefix: 'Soil_Properties_Parcels',
+  fileFormat: 'CSV'
+});
