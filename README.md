@@ -3,7 +3,7 @@
 
 # **C-factor-from-Sentinel-2**
 
-#General description
+#**General description**
 
 This repository contains all the information regarding the Python/Google Earth Engine scripts used to calculate parcel-specific (multi-year/annual) crop cover and manageent factors (C-factors) based on Sentinel-2 remote sensing imagery for Flanders. 
 The code analyses the temporal evolution of the ground cover within the year and calculated the erosion risk and C-factor based on the interations with the 15-day rainfall erosivity. Additionally, it includes a necessary Python script for statistically analyzing the results.
@@ -16,7 +16,7 @@ The outputs of the workflow give the following insights into the soil erosion ri
 1) C-factor values for each field parcel which can be compared between and within main crop cultivations.
 2) Information of the timing of the erosion risk within the year for a given main crop cultivation.
 
-#Workflow
+#**Workflow**
 
 The workflow composes of 3 general steps:
 1) Sampling the desired field parcels to analyse based on a GSA dataset of field parcel geometries and crop cultivation declarations.
@@ -27,7 +27,7 @@ Note that the C-factor is calculated based on the average pixel value per field 
 
 This repository gives and end-to-end example for a sample of field parcels in Flanders, Belgium, which calculated the annual C-factor for a large sample of 25 % of the field parcels in Flanders, as well as the multi-year C-factor values for a smaller sample of crop rotations.
 
-#Expanding the workflow across regions and years
+#**Expanding the workflow across regions and years**
 
 The entire Python workflow is based on EUROCROPS data and can therefore also be used or adapted for other regions in Europe. The scripts outlined here are, as previously mentioned, an application focused on Flanders, but this does not mean they are exclusively applicable to Flanders. They can be regarded as a template to be used when calculating C-factors for a specific region within Europe.
 
@@ -36,7 +36,7 @@ The main module for the actual modelling of the C-factor for parcels in Flanders
 More information about EUROCROPS data can be found via the link below:
 https://www.eurocrops.tum.de/index.html
 
-#Funding
+#**Funding**
 
 This work was funded over multiple projects:
 1) The Collaborative Doctoral Partnerships (CDP) initiative of the Joint Research Centre (JRC) grant number 35332 and the Fonds Wetenschappelijk Onderzoek Vlaanderen (Research Foundation Flanders- application S003017N). - focussed on the general methodological developments
