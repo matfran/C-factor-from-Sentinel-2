@@ -29,9 +29,9 @@ This repository gives and end-to-end example for a sample of field parcels in Fl
 
 **Expanding the workflow across regions and years**
 
-The entire Python workflow is based on EUROCROPS data and can therefore also be used or adapted for other regions in Europe. The scripts outlined here are, as previously mentioned, an application focused on Flanders, but this does not mean they are exclusively applicable to Flanders. They can be regarded as a template to be used when calculating C-factors for a specific region within Europe.
+The entire Python workflow is based on EUROCROPS data and can therefore also be used or adapted for other regions in Europe. The scripts provided give an application in Flanders, Belgium, but with data inputs which are available in multiple European countries (IACS data compiled in EUROCROPS) and Sentinel-2. The workflow is therefore replicable in other European countries with minimal modifications.
 
-The main module for the actual modelling of the C-factor for parcels in Flanders is the Flanders_Cfactor_sample.py script, located in the C_factor_calculation folder. The Common_modules folder, also present in this directory, contains essential functions that are used by the main module.
+The main module for the actual modelling of the C-factor for parcels in Flanders is the Flanders_Cfactor_sample.py script, located in the C_factor_calculation folder. The Common_modules folder, also present in this directory, contains essential functions that are used by the main module. Replication in other European regions or countries requires the data to be downloaded from EUROCROPS, sampled, uploaded in GEE to sample Sentinel-2 imagery, and run through the general C-factor module which runs the method for the desired field parcels. By leveraging Google Earth Engine, the workflow can be freely repeated in areas and years covered by EUROCROPS.
 
 More information about EUROCROPS data can be found via the link below:
 https://www.eurocrops.tum.de/index.html
