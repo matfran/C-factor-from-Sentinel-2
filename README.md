@@ -1,6 +1,4 @@
-![image](https://github.com/user-attachments/assets/a9e140fb-5ec0-4ed2-9db3-de6ce1a3973e)
-
-
+<img src="https://github.com/user-attachments/assets/a9e140fb-5ec0-4ed2-9db3-de6ce1a3973e" alt="C-factor-from-Sentinel-2" width="300"/>
 **C-factor-from-Sentinel-2**
 
 This repository contains all the information regarding the Python/Google Earth Engine scripts used to calculate parcel-specific (multi-year/annual) crop cover and manageent factors (C-factors) based on Sentinel-2 remote sensing imagery for Flanders. 
