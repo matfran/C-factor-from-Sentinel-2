@@ -18,6 +18,9 @@ The outputs of the workflow give the following insights into the soil erosion ri
 
 **Workflow**
 
+<img src="https://github.com/user-attachments/assets/005a2b45-840f-46fb-a900-5e69e7f0cfb5" width="300"/>
+
+
 The workflow composes of 3 general steps:
 1) Sampling the desired field parcels to analyse based on a GSA dataset of field parcel geometries and crop cultivation declarations.
 2) Uploading and processing the parcels in Google Earth Engine (GEE) to freely extract and download all the available Sentinel-2 timeseries data for the sample of parcels.
@@ -40,6 +43,6 @@ https://www.eurocrops.tum.de/index.html
 
 This work was funded over multiple projects:
 1) The Collaborative Doctoral Partnerships (CDP) initiative of the Joint Research Centre (JRC) grant number 35332 and the Fonds Wetenschappelijk Onderzoek Vlaanderen (Research Foundation Flanders- application S003017N). - focussed on the general methodological developments
-2) The C-project issued to KU Leuven by the Departement Omgeving of the Flemish Government. - developed a in-depth regional application in Flanders, Belgium.
+2) The C-project issued to KU Leuven by the Departement Omgeving of the Flemish Government. - developed an in-depth regional application in Flanders, Belgium.
 
 For questions, contributions, or commercial use inquiries, please contact fmatthews1381@gmail.com
