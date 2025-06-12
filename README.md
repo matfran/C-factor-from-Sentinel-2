@@ -20,15 +20,14 @@ The outputs of the workflow give the following insights into the soil erosion ri
 
 <img src="https://github.com/user-attachments/assets/005a2b45-840f-46fb-a900-5e69e7f0cfb5" width="300"/>
 
-
 The workflow composes of 3 general steps:
-1) Sampling the desired field parcels to analyse based on a GSA dataset of field parcel geometries and crop cultivation declarations.
-2) Uploading and processing the parcels in Google Earth Engine (GEE) to freely extract and download all the available Sentinel-2 timeseries data for the sample of parcels.
+1) Sampling the desired field parcels to analyse based on a field parcel declaration (GSA) dataset of field parcel geometries and crop cultivation declarations. Depending on the region of interest, this can be a subsample of field parcels or all.
+2) Uploading and processing the parcels in Google Earth Engine (GEE) to freely extract and download all the available Sentinel-2 timeseries data for the sample of parcels to best capture the crop phenology.
 3) Calculating the C-factor for the sampled field parcels using the C-factor Python module and statistically analysing the results.
 
 Note that the C-factor is calculated based on the average pixel value per field parcel. This gives robust values per parcel but may miss variability within field parcels which may be neccessary for use-cases requiring high spatial detail in a given year. 
 
-This repository gives and end-to-end example for a sample of field parcels in Flanders, Belgium, which calculated the annual C-factor for a large sample of 25 % of the field parcels in Flanders, as well as the multi-year C-factor values for a smaller sample of crop rotations.
+This repository gives and end-to-end example for a sample of field parcels in Flanders, Belgium, which calculated the annual C-factor for a large sample of 25 % (e.g. over 100,000) of the field parcels in Flanders, as well as the multi-year C-factor values for a smaller sample of crop rotations. Application on a larger number of field parcels is possible, with some extra patience from GEE.
 
 **Expanding the workflow across regions and years**
 
